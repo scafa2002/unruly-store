@@ -1,7 +1,7 @@
 // Unruly store server: zero dependencies, needs Node 22.13+ (built-in SQLite). Run: node server.js
 const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto'),{DatabaseSync}=require('node:sqlite');
 const PORT=process.env.PORT||3000,ADMIN_CODE=process.env.ADMIN_CODE||'UNRULY-ADMIN';
-const db=new DatabaseSync(path.join(__dirname,'unruly.db'));
+const db=new DatabaseSync(process.env.DB_PATH||path.join(__dirname,'unruly.db'));
 db.exec(`create table if not exists kv(k text primary key,v text);
 create table if not exists users(id integer primary key,name text,email text unique,phone text,pass text,role text,created text default current_timestamp);
 create table if not exists products(id integer primary key,name text,cat text,price integer,color text,img text,sizes text);
@@ -71,6 +71,8 @@ route('GET','/api/orders/mine','customer',(b,u)=>db.prepare('select * from order
 route('GET','/api/orders','admin',()=>db.prepare('select * from orders order by created desc').all().map(O));
 route('PATCH','/api/orders/([\\w-]+)','admin',(b,u,m)=>{if(!['Pending','Paid','Shipped','Delivered','Cancelled'].includes(b.status))err('Unknown status.');db.prepare('update orders set status=? where id=?').run(b.status,m[1]);return{ok:1}});
 route('GET','/api/customers','admin',()=>({customers:db.prepare("select u.id,u.name,u.email,u.phone,u.created,count(o.id) orders,coalesce(sum(case when o.status!='Cancelled' then o.total end),0) spent from users u left join orders o on o.user_id=u.id where u.role='customer' group by u.id order by u.created desc").all().map(c=>({...c,created:iso(c.created)})),subs:db.prepare('select count(*) n from subs').get().n}));
+route('GET','/api/subscribers','admin',()=>db.prepare('select email,created from subs order by created desc').all().map(s=>({email:s.email,created:iso(s.created)})));
+route('DELETE','/api/subscribers/([^/]+)','admin',(b,u,m)=>{db.prepare('delete from subs where email=?').run(decodeURIComponent(m[1]));return{ok:1}});
 route('POST','/api/subscribe',null,b=>{const e=(b.email||'').trim().toLowerCase();if(!mail(e))err('Enter a valid email address.');db.prepare('insert or ignore into subs(email) values(?)').run(e);return{ok:1}});
 
 const MIME={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png'},PUB=path.join(__dirname,'public');
@@ -84,6 +86,6 @@ http.createServer(async(req,res)=>{
    return send(res,200,r[3](raw?JSON.parse(raw):{},u,url.pathname.match(r[1])))}
   const f=path.join(PUB,url.pathname==='/'?'index.html':decodeURIComponent(url.pathname));
   if(!f.startsWith(PUB)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){res.writeHead(404,{'Content-Type':'text/plain'});return res.end('Page not found')}
-  res.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream'});fs.createReadStream(f).pipe(res);
+  res.writeHead(200,{'Content-Type':MIME[path.extname(f)]||'application/octet-stream','Cache-Control':'no-cache'});fs.createReadStream(f).pipe(res);
  }catch(e){send(res,e.c||500,{error:e.c?e.message:'Something went wrong on our side. Try again.'});if(!e.c)console.error(e)}
-}).listen(PORT,()=>console.log('Unruly is running at http://localhost:'+PORT+'\nAdmin sign-up code: '+ADMIN_CODE+' (set your own with the ADMIN_CODE environment variable)'));
+}).listen(PORT,()=>console.log('Unruly v3 (colour options) is running at http://localhost:'+PORT+'\nAdmin sign-up code: '+ADMIN_CODE+' (set your own with the ADMIN_CODE environment variable)'));
