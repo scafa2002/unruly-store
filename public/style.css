@@ -140,3 +140,5 @@ main,footer{position:relative;z-index:1}
 .swb.x0{opacity:.35;background-image:linear-gradient(135deg,transparent 46%,#fff 47%,#fff 53%,transparent 54%)}
 .bad{color:var(--bad)}.cblk{margin-bottom:12px}.cbh{display:flex;gap:14px;align-items:flex-start}.cbm{flex:1}.dsm{width:96px}
 .sizesrow{display:flex;gap:10px;margin:6px 0 12px}.cbf{display:flex;gap:6px;flex-wrap:wrap}
+
+.sizesrow{flex-wrap:wrap}

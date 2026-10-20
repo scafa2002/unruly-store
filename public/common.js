@@ -1,5 +1,5 @@
-const CFG={cur:'₦',wa:'2348028453170'};   // currency symbol and WhatsApp number (no +)
-const SZ=['S','M','L','XL'],CATS=['Tees','Hoodies','Bottoms','Headwear'],STATUS=['Pending','Paid','Shipped','Delivered','Cancelled'];
+const CFG={cur:'₦',wa:'2340000000000'};   // currency symbol and WhatsApp number (no +)
+const SZ=['S','M','L','XL','2XL','3XL'],CATS=['Tees','Hoodies','Bottoms','Headwear'],STATUS=['Pending','Paid','Shipped','Delivered','Cancelled'];
 const $=(s,e=document)=>e.querySelector(s),$$=(s,e=document)=>[...e.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>CFG.cur+Number(n||0).toLocaleString('en-US');

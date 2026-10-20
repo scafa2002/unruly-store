@@ -23,8 +23,8 @@ function renderAdmin(){
  <div class="tabs"><button class="chip ${tab==='inv'?'on':''}" data-a="tab" data-v="inv">Inventory</button><button class="chip ${tab==='ord'?'on':''}" data-a="tab" data-v="ord">Orders</button><button class="chip ${tab==='cus'?'on':''}" data-a="tab" data-v="cus">Customers</button><button class="chip ${tab==='sub'?'on':''}" data-a="tab" data-v="sub">Subscribers</button><button class="chip ${tab==='form'?'on':''}" data-a="new">Add product</button></div>${body}
  </div>`;
 }
-const newColor=(n='',h='#e9e7e1')=>({name:n,hex:h,img:'',sizes:{S:0,M:0,L:0,XL:0}});
-const blank=()=>({id:0,name:'',cat:'Tees',price:'',color:'#e9e7e1',img:'',sizes:{S:0,M:0,L:0,XL:0},colors:[newColor('Black','#1d1d1d')]});
+const newColor=(n='',h='#e9e7e1')=>({name:n,hex:h,img:'',sizes:Object.fromEntries(SZ.map(s=>[s,0]))});
+const blank=()=>({id:0,name:'',cat:'Tees',price:'',color:'#e9e7e1',img:'',sizes:Object.fromEntries(SZ.map(s=>[s,0])),colors:[newColor('Black','#1d1d1d')]});
 async function saveProduct(){
  const n=$('#f_n').value.trim(),pr=+$('#f_p').value,d=draft;
  if(!n||!pr)return toast('Add a name and a price first.');
