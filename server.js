@@ -1,7 +1,11 @@
 // Unruly store server: zero dependencies, needs Node 22.13+ (built-in SQLite). Run: node server.js
-const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto'),{DatabaseSync}=require('node:sqlite');
+const http=require('http'),fs=require('fs'),path=require('path'),crypto=require('crypto');
+let DatabaseSync;try{({DatabaseSync}=require('node:sqlite'))}catch(e){console.error('STARTUP ERROR: this server needs Node.js 22.13 or newer, but this machine runs '+process.version+'.');process.exit(1)}
 const PORT=process.env.PORT||3000,ADMIN_CODE=process.env.ADMIN_CODE||'UNRULY-ADMIN';
-const db=new DatabaseSync(process.env.DB_PATH||path.join(__dirname,'unruly.db'));
+const DBP=process.env.DB_PATH||path.join(__dirname,'unruly.db');
+try{fs.mkdirSync(path.dirname(DBP),{recursive:true})}catch(e){}
+let db;try{db=new DatabaseSync(DBP)}catch(e){console.error('STARTUP ERROR: could not open the database at '+DBP+'. If you set DB_PATH, check that a volume is mounted at that folder. ('+e.message+')');process.exit(1)}
+console.log('Database: '+DBP+' | Node '+process.version);
 db.exec(`create table if not exists kv(k text primary key,v text);
 create table if not exists users(id integer primary key,name text,email text unique,phone text,pass text,role text,created text default current_timestamp);
 create table if not exists products(id integer primary key,name text,cat text,price integer,color text,img text,sizes text);
