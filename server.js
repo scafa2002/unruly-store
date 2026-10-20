@@ -22,7 +22,8 @@ const sign=u=>{const b=Buffer.from(JSON.stringify({id:u.id,role:u.role,exp:Date.
 const who=req=>{const[b,s]=(req.headers.authorization||'').slice(7).split('.');if(!s||mac(b)!==s)return null;try{const p=JSON.parse(Buffer.from(b,'base64url'));return p.exp>Date.now()?p:null}catch{return null}};
 const err=(m,c=400)=>{throw Object.assign(new Error(m),{c})};
 const iso=s=>String(s).replace(' ','T')+'Z';
-const P=r=>{const colors=JSON.parse(r.colors),sizes={S:0,M:0,L:0,XL:0};colors.forEach(c=>Object.keys(sizes).forEach(k=>sizes[k]+=c.sizes[k]||0));return{id:r.id,name:r.name,cat:r.cat,price:r.price,color:colors[0].hex,img:colors[0].img,sizes,colors}};
+const SIZES=['S','M','L','XL','2XL','3XL'];
+const P=r=>{const colors=JSON.parse(r.colors),sizes={};SIZES.forEach(k=>sizes[k]=0);colors.forEach(c=>SIZES.forEach(k=>{c.sizes[k]=c.sizes[k]||0;sizes[k]+=c.sizes[k]}));return{id:r.id,name:r.name,cat:r.cat,price:r.price,color:colors[0].hex,img:colors[0].img,sizes,colors}};
 const O=r=>({id:r.id,date:iso(r.created),name:r.name,phone:r.phone,address:r.address,items:JSON.parse(r.items),total:r.total,status:r.status,pay:r.pay});
 const pub=u=>({id:u.id,name:u.name,email:u.email,phone:u.phone,role:u.role});
 const R=[],route=(m,p,role,fn)=>R.push([m,new RegExp('^'+p+'$'),role,fn]);
@@ -45,7 +46,7 @@ route('GET','/api/me','any',(b,u)=>{const r=db.prepare('select id,name,email,pho
 
 const pbody=b=>{
  if(!(b.name||'').trim()||!(+b.price>0))err('A product needs a name and a price.');
- const cs=(Array.isArray(b.colors)?b.colors:[]).slice(0,10).map(c=>{const s={};['S','M','L','XL'].forEach(k=>s[k]=Math.max(0,parseInt(c.sizes&&c.sizes[k])||0));return{name:(c.name||'').trim()||'Standard',hex:/^#[0-9a-f]{6}$/i.test(c.hex)?c.hex:'#e9e7e1',img:c.img||'',sizes:s}});
+ const cs=(Array.isArray(b.colors)?b.colors:[]).slice(0,10).map(c=>{const s={};SIZES.forEach(k=>s[k]=Math.max(0,parseInt(c.sizes&&c.sizes[k])||0));return{name:(c.name||'').trim()||'Standard',hex:/^#[0-9a-f]{6}$/i.test(c.hex)?c.hex:'#e9e7e1',img:c.img||'',sizes:s}});
  if(!cs.length)err('Add at least one colour.');
  if(new Set(cs.map(c=>c.name.toLowerCase())).size<cs.length)err('Each colour needs a different name.');
  return[b.name.trim(),b.cat||'Tees',Math.round(+b.price),cs[0].hex,'',JSON.stringify(cs[0].sizes),JSON.stringify(cs)]};
@@ -61,7 +62,7 @@ route('POST','/api/orders','customer',(b,u)=>{
  try{const lines=[];let total=0;
   for(const i of items){const p=db.prepare('select * from products where id=?').get(i.id);if(!p)err('A product in your bag is no longer available.');
    const cs=JSON.parse(p.colors),q=parseInt(i.qty)||0,c=i.color?cs.find(x=>x.name===i.color):cs[0];
-   if(!c||q<1||!(i.size in c.sizes)||c.sizes[i.size]<q)err(p.name+(c?' in '+c.name:'')+' ('+i.size+') is out of stock.');
+   if(!c||q<1||!SIZES.includes(i.size)||(c.sizes[i.size]||0)<q)err(p.name+(c?' in '+c.name:'')+' ('+i.size+') is out of stock.');
    c.sizes[i.size]-=q;db.prepare('update products set colors=? where id=?').run(JSON.stringify(cs),p.id);lines.push({id:p.id,name:p.name,color:c.name,size:i.size,qty:q,price:p.price});total+=p.price*q}
   const id='UNR-'+Date.now().toString(36).toUpperCase();
   db.prepare('insert into orders(id,user_id,name,phone,address,items,total,pay) values(?,?,?,?,?,?,?,?)').run(id,u.id,b.name.trim(),b.phone.trim(),b.address.trim(),JSON.stringify(lines),total,b.pay==='wa'?'wa':'cod');
